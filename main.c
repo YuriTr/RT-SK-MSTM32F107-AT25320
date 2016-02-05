@@ -24,10 +24,6 @@
 #include "shell.h"
 #include "chprintf.h"
 
-#include "usbcfg.h"
-
-/* Virtual serial port over USB.*/
-SerialUSBDriver SDU1;
 
 /*===========================================================================*/
 /* Command line related.                                                     */
@@ -113,7 +109,7 @@ static void cmd_write(BaseSequentialStream *chp, int argc, char *argv[]) {
   }
 
   while (chnGetTimeout((BaseChannel *)chp, TIME_IMMEDIATE) == Q_TIMEOUT) {
-    chSequentialStreamWrite(&SDU1, buf, sizeof buf - 1);
+    chSequentialStreamWrite(chp, buf, sizeof buf - 1);
   }
   chprintf(chp, "\r\n\nstopped\r\n");
 }
@@ -127,8 +123,15 @@ static const ShellCommand commands[] = {
 };
 
 static const ShellConfig shell_cfg1 = {
-  (BaseSequentialStream *)&SDU1,
+  (BaseSequentialStream *)&SD2,
   commands
+};
+
+SerialConfig    Shell_SerialCfg = {
+    /*speed*/ 38400,
+    /*cr1*/   USART_CR1_UE | USART_CR1_RE,
+    /*cr2*/   USART_CR2_STOP1_BITS,
+    /*cr3*/   0 /*USART_CR3_CTSE | USART_CR3_RTSE*/
 };
 
 /*===========================================================================*/
@@ -144,10 +147,11 @@ static THD_FUNCTION(Thread1, arg) {
   (void)arg;
   chRegSetThreadName("blinker");
   while (true) {
-    systime_t time = serusbcfg.usbp->state == USB_ACTIVE ? 250 : 500;
-    palClearPad(GPIOA, GPIOA_LED_BLUE);
+    //systime_t time = serusbcfg.usbp->state == USB_ACTIVE ? 250 : 500;
+    systime_t time = 500;
+    palClearPad(GPIOC, GPIOC_LED_STATUS1);
     chThdSleepMilliseconds(time);
-    palSetPad(GPIOA, GPIOA_LED_BLUE);
+    palSetPad(GPIOC, GPIOC_LED_STATUS1);
     chThdSleepMilliseconds(time);
   }
 }
@@ -169,20 +173,9 @@ int main(void) {
   chSysInit();
 
   /*
-   * Initializes a serial-over-USB CDC driver.
-   */
-  sduObjectInit(&SDU1);
-  sduStart(&SDU1, &serusbcfg);
-
-  /*
-   * Activates the USB driver and then the USB bus pull-up on D+.
-   * Note, a delay is inserted in order to not have to disconnect the cable
-   * after a reset.
-   */
-  usbDisconnectBus(serusbcfg.usbp);
-  chThdSleepMilliseconds(1500);
-  usbStart(serusbcfg.usbp, &usbcfg);
-  usbConnectBus(serusbcfg.usbp);
+  * Initializes a serial driver for SIM900.
+  */
+  sdStart((SerialDriver *)shell_cfg1.sc_channel,&Shell_SerialCfg);
 
   /*
    * Shell manager initialization.
@@ -194,17 +187,20 @@ int main(void) {
    */
   chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO, Thread1, NULL);
 
+  shelltp = shellCreate(&shell_cfg1, SHELL_WA_SIZE, NORMALPRIO);
   /*
    * Normal main() thread activity, in this demo it does nothing except
    * sleeping in a loop and check the button state.
    */
   while (true) {
+#if 0
     if (!shelltp && (SDU1.config->usbp->state == USB_ACTIVE))
       shelltp = shellCreate(&shell_cfg1, SHELL_WA_SIZE, NORMALPRIO);
     else if (chThdTerminatedX(shelltp)) {
       chThdRelease(shelltp);    /* Recovers memory of the previous shell.   */
       shelltp = NULL;           /* Triggers spawning of a new shell.        */
     }
+#endif
     chThdSleepMilliseconds(1000);
   }
 }
