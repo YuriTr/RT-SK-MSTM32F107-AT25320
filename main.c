@@ -23,6 +23,10 @@
 
 #include "shell.h"
 #include "chprintf.h"
+#include "at25.h"
+
+#define TRACE_LEVEL TRACE_LEVEL_DEBUG
+
 #include "trace.h"
 
 MUTEX_DECL(DBG_busy_mutex);
@@ -30,6 +34,11 @@ BaseSequentialStream * shell_chp = NULL;
 #if !defined(NOTRACE) && (DYN_TRACES == 1)
   unsigned int traceLevel=TRACE_LEVEL;
 #endif
+
+  At25Driver_t At25drv;
+
+  uint8_t  ReadBuf[1024];
+
 
 /*===========================================================================*/
 /* Command line related.                                                     */
@@ -133,7 +142,7 @@ static const ShellConfig shell_cfg1 = {
   commands
 };
 
-SerialConfig    Shell_SerialCfg = {
+const SerialConfig    Shell_SerialCfg = {
     /*speed*/ 38400,
     /*cr1*/   USART_CR1_UE | USART_CR1_RE,
     /*cr2*/   USART_CR2_STOP1_BITS,
@@ -166,6 +175,7 @@ static THD_FUNCTION(Thread1, arg) {
  * Application entry point.
  */
 int main(void) {
+  uint16_t i,l;
   thread_t *shelltp = NULL;
 
   /*
@@ -183,7 +193,7 @@ int main(void) {
   */
   sdStart((SerialDriver *)shell_cfg1.sc_channel,&Shell_SerialCfg);
   if (!shell_chp) {
-      shell_chp = (BaseSequentialStream *)&shell_cfg1.sc_channel;
+      shell_chp = (BaseSequentialStream *)shell_cfg1.sc_channel;
   }
 
   /*
@@ -201,6 +211,14 @@ int main(void) {
    * Normal main() thread activity, in this demo it does nothing except
    * sleeping in a loop and check the button state.
    */
+  AT25_Configure(&At25drv,0,0,idAt25320);
+  TRACE_DEBUG("EEPROM Status: %x\n\r", AT25_StatusRead(&At25drv));
+  TRACE_DEBUG("Read EEPROM: ");
+  i = AT25_ee_read(&At25drv,0,ReadBuf,256);
+  for (l = 0;l<i;l++) {
+    TRACE_DEBUG_WP("%x ",ReadBuf[l]);
+  }
+  TRACE_DEBUG_WP("\n\r");
   while (true) {
 #if 0
     if (!shelltp && (SDU1.config->usbp->state == USB_ACTIVE))

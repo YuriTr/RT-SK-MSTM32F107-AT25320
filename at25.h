@@ -54,7 +54,7 @@ typedef struct {
     /// The block write protection levels and
     uint16_t  BlockWPaddr[4];
     /// Identifier.
-	const char *name;
+    const char *name;
 } At25Desc;
 
 #define AT25_CMD_BUFFER_SZ  8
@@ -75,6 +75,8 @@ extern uint8_t AT25_Write_Enable(At25Driver_t *pAt25);
 extern uint8_t AT25_Write_Disable(At25Driver_t *pAt25);
 
 extern uint8_t AT25_StatusWrite(At25Driver_t *pAt25,uint8_t state);
+
+extern uint8_t AT25_StatusRead(At25Driver_t *pAt25);
 
 extern uint16_t AT25_ee_write(At25Driver_t *pAt25,uint16_t address, uint8_t *data, uint16_t datasz);
 

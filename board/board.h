@@ -196,6 +196,7 @@
 #define VAL_GPIOAODR            (                      \
                                 /*SBIT( GPIOA_USB_DM    ) |*/ \
                                 /*SBIT( GPIOA_USB_DP    ) |*/ \
+                                SBIT( GPIOA_SPI_NSS     ) |   \
                                 SBIT( GPIOA_SWDIO     ) | \
                                 SBIT( GPIOA_PA15      )   \
                                 )

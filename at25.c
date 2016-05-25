@@ -2,8 +2,11 @@
 #include "ch.h"
 #include "hal.h"
 #include "at25.h"
-#include "trace.h"
 #include <string.h>
+
+#define TRACE_LEVEL TRACE_LEVEL_DEBUG
+
+#include "trace.h"
 
 /// Number of dataflash which can be recognized.
 #define NUMEEPROM    (sizeof(at25Devices) / sizeof(At25Desc))
@@ -32,18 +35,22 @@ static const SPIConfig At25DefSpiConfig = {
   /**
    * @brief SPI initialization data.
    */
-  0
+  SPI_CR1_BR_2 | SPI_CR1_BR_1
 };
 
 /***/
 uint8_t AT25_Configure(At25Driver_t *pAt25, SPIDriver *pSpid, SPIConfig * spicfg, At25_id_t At25id) {
   chDbgAssert(pAt25,"AT25_Configure: pAt25 is NULL.\n\r");
-  chDbgAssert(pSpid,"AT25_Configure: pSpid is NULL.\n\r");
+//  chDbgAssert(pSpid,"AT25_Configure: pSpid is NULL.\n\r");
   chDbgAssert(At25id < NUMEEPROM,"AT25_Configure: Wrong At25id\n\r");
 
   memset(pAt25->pCmdBuffer, 0, AT25_CMD_BUFFER_SZ );
 
-  pAt25->spidrv = pSpid;
+  if (pSpid) {
+      pAt25->spidrv = pSpid;
+  } else {
+      pAt25->spidrv = &AT25_SPI_DRIVER;
+  }
   pAt25->pDesc = &at25Devices[At25id];
   if (spicfg) {
     pAt25->spicfg = spicfg;
