@@ -93,7 +93,10 @@ uint8_t AT25_SendCommand(
     spiSelect(pAt25->spidrv);
     
     spiSend(pAt25->spidrv,cmdSize,pAt25->pCmdBuffer);
-    spiExchange(pAt25->spidrv,dataSize,pData,pData);
+    if ( dataSize && 
+         pData ) {
+        spiExchange(pAt25->spidrv,dataSize,pData,pData);
+    }
 
     spiUnselect(pAt25->spidrv);
     spiReleaseBus(pAt25->spidrv);

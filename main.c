@@ -67,18 +67,33 @@ static void cmd_threads(BaseSequentialStream *chp, int argc, char *argv[]) {
 
   (void)argv;
   if (argc > 0) {
+    chMtxLock(&DBG_busy_mutex);
     chprintf(chp, "Usage: threads\r\n");
+    chMtxUnlock(&DBG_busy_mutex);
     return;
   }
-  chprintf(chp, "    addr    stack prio refs     state\r\n");
+  chMtxLock(&DBG_busy_mutex);
+  #if CH_CFG_USE_REGISTRY || defined(__DOXYGEN__)
+  chprintf(chp, "    addr    stack prio refs     state     time  name\r\n");
+  #else
+  chprintf(chp, "    addr    stack prio refs     state     time\r\n");
+  #endif
   tp = chRegFirstThread();
   do {
-    chprintf(chp, "%08lx %08lx %4lu %4lu %9s\r\n",
-            (uint32_t)tp, (uint32_t)tp->p_ctx.r13,
-            (uint32_t)tp->p_prio, (uint32_t)(tp->p_refs - 1),
-            states[tp->p_state]);
+    #if CH_CFG_USE_REGISTRY || defined(__DOXYGEN__)
+      chprintf(chp, "%.8lx %.8lx %4lu %4lu %9s %8lu  %s\r\n",
+               (uint32_t)tp, (uint32_t)tp->p_ctx.r13,
+               (uint32_t)tp->p_prio, (uint32_t)(tp->p_refs - 1),
+               states[tp->p_state], (uint32_t)tp->p_time, tp->p_name);
+    #else
+      chprintf(chp, "%.8lx %.8lx %4lu %4lu %9s %8lu\r\n",
+               (uint32_t)tp, (uint32_t)tp->p_ctx.r13,
+               (uint32_t)tp->p_prio, (uint32_t)(tp->p_refs - 1),
+               states[tp->p_state], (uint32_t)tp->p_time);
+    #endif
     tp = chRegNextThread(tp);
   } while (tp != NULL);
+  chMtxUnlock(&DBG_busy_mutex);
 }
 
 static void cmd_test(BaseSequentialStream *chp, int argc, char *argv[]) {
@@ -129,11 +144,40 @@ static void cmd_write(BaseSequentialStream *chp, int argc, char *argv[]) {
   chprintf(chp, "\r\n\nstopped\r\n");
 }
 
+static void cmd_eeread(BaseSequentialStream *chp, int argc, char *argv[]) {
+  uint16_t i,l;
+  chMtxLock(&DBG_busy_mutex);
+  chprintf(chp,"EEPROM Status: %x\n\r", AT25_StatusRead(&At25drv));
+  chprintf(chp,"Read EEPROM: ");
+  i = AT25_ee_read(&At25drv,0,ReadBuf,256);
+  for (l = 0;l<i;l++) {
+    chprintf(chp,"%x ",ReadBuf[l]);
+  }
+  chprintf(chp,"\n\r");
+  chMtxUnlock(&DBG_busy_mutex);
+}
+
+static void cmd_eewrite(BaseSequentialStream *chp, int argc, char *argv[])  {
+  uint16_t i,l;
+  chMtxLock(&DBG_busy_mutex);
+  chprintf(chp,"Write EEPROM: ");
+  for (l = 0;l<256;l++) {
+    ReadBuf[l] = (uint8_t) l;
+    chprintf(chp,"%x ",ReadBuf[l]);
+  }
+  chprintf(chp,"\n\r");
+  i = AT25_ee_write(&At25drv,0,ReadBuf,256);
+  chprintf(chp, "%d bytes written\n\r",i);
+  chMtxUnlock(&DBG_busy_mutex);
+}
+
 static const ShellCommand commands[] = {
   {"mem", cmd_mem},
   {"threads", cmd_threads},
   {"test", cmd_test},
   {"write", cmd_write},
+  {"eeread", cmd_eeread},
+  {"eewrite",cmd_eewrite},
   {NULL, NULL}
 };
 
