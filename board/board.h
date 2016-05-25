@@ -51,10 +51,10 @@
 #define GPIOA_PA1			          1
 #define GPIOA_PA2	              2
 #define GPIOA_PA3	              3
-#define GPIOA_PA4	              4
-#define GPIOA_PA5	              5
-#define GPIOA_PA6	              6
-#define GPIOA_PA7               7
+#define GPIOA_SPI_NSS           4
+#define GPIOA_SPI_SCK           5
+#define GPIOA_SPI_MISO          6
+#define GPIOA_SPI_MOSI          7
 #define GPIOA_PA8	              8
 #define GPIOA_VBUS_FS           9
 #define GPIOA_OTG_FS_ID         10
@@ -166,17 +166,17 @@
  * PA13 - Pull-up input             (GPIOA_SWDIO).
  * PA14 - Pull-down input           (GPIOA_SWCLK).
  */
-#define VAL_GPIOACR            (                                       \
+#define VAL_GPIOACR            (                                      \
                                 PIN_DIG_INPUT_FLOATING(GPIOA_PA0)  |  \
                                 PIN_DIG_INPUT_FLOATING(GPIOA_PA1)  |  \
                                 PIN_DIG_INPUT_FLOATING(GPIOA_PA2)  |  \
                                 PIN_DIG_INPUT_FLOATING(GPIOA_PA3)  |  \
-                                PIN_DIG_INPUT_FLOATING(GPIOA_PA4)  |  \
-                                PIN_DIG_INPUT_FLOATING(GPIOA_PA5)  |  \
-                                PIN_DIG_INPUT_FLOATING(GPIOA_PA6)  |  \
-                                PIN_DIG_INPUT_FLOATING(GPIOA_PA7)  |  \
-                                PIN_DIG_INPUT_FLOATING(GPIOA_PA8)  |  \
-                                PIN_DIG_INPUT_PUPD(GPIOA_VBUS_FS)  |  \
+                                PIN_OUTPUT_PUSHPULL_10M(GPIOA_SPI_NSS)          |  \
+                                PIN_OUT_ALTERNATE_PUSHPULL_10M(GPIOA_SPI_MOSI)  |  \
+                                PIN_OUT_ALTERNATE_PUSHPULL_10M(GPIOA_SPI_SCK)   |  \
+                                PIN_DIG_INPUT_FLOATING(GPIOA_SPI_MISO)          |  \
+                                PIN_DIG_INPUT_FLOATING(GPIOA_PA8)     |  \
+                                PIN_DIG_INPUT_PUPD(GPIOA_VBUS_FS)     |  \
                                 PIN_DIG_INPUT_PUPD(GPIOA_OTG_FS_ID)   |  \
                                 PIN_OUT_ALTERNATE_PUSHPULL_50M(GPIOA_OTG_FS_DM)   |   \
                                 PIN_OUT_ALTERNATE_PUSHPULL_50M(GPIOA_OTG_FS_DP)   |   \

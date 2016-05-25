@@ -23,7 +23,13 @@
 
 #include "shell.h"
 #include "chprintf.h"
+#include "trace.h"
 
+MUTEX_DECL(DBG_busy_mutex);
+BaseSequentialStream * shell_chp = NULL;
+#if !defined(NOTRACE) && (DYN_TRACES == 1)
+  unsigned int traceLevel=TRACE_LEVEL;
+#endif
 
 /*===========================================================================*/
 /* Command line related.                                                     */
@@ -176,6 +182,9 @@ int main(void) {
   * Initializes a serial driver for SIM900.
   */
   sdStart((SerialDriver *)shell_cfg1.sc_channel,&Shell_SerialCfg);
+  if (!shell_chp) {
+      shell_chp = (BaseSequentialStream *)&shell_cfg1.sc_channel;
+  }
 
   /*
    * Shell manager initialization.

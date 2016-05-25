@@ -1,3 +1,5 @@
 
 .dep/*.o.d
 build/*
+SlickEdit/*.vpwhist
+SlickEdit/*.vtg
