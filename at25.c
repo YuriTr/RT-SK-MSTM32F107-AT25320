@@ -12,10 +12,11 @@
 #define NUMEEPROM    (sizeof(at25Devices) / sizeof(At25Desc))
 
 static const At25Desc at25Devices[] = {
-    {1024, { 0x3ff, 0x300, 0x200,0}, "AT25080"},
-    {2048, { 0x7ff, 0x600, 0x400,0}, "AT25160"},
-    {4096, { 0xfff, 0xc00, 0x800,0}, "AT25320"},
-    {8192, {0x1fff,0x1800,0x1000,0}, "AT25640"},
+    {1024, { 0x3ff, 0x300, 0x200,0}, 20, "AT25080"},
+    {2048, { 0x7ff, 0x600, 0x400,0}, 20, "AT25160"},
+    {4096, { 0xfff, 0xc00, 0x800,0}, 20, "AT25320"},
+    {8192, {0x1fff,0x1800,0x1000,0}, 20, "AT25640"},
+    {65536, {0xffff,0xC000,0x8000,0}, 5, "AT25512"}
 };
 
 
@@ -57,7 +58,7 @@ uint8_t AT25_Configure(At25Driver_t *pAt25, SPIDriver *pSpid, SPIConfig * spicfg
   } else {
     pAt25->spicfg = (SPIConfig *)&At25DefSpiConfig;
   }
-  TRACE_DEBUG("%s: EEPROM %s\n\r",__FUNCTION__,pAt25->pDesc->name);
+  TRACE_DEBUG("%s: EEPROM %s configured\n\r",__FUNCTION__,pAt25->pDesc->name);
   
   return MSG_OK;
 }
@@ -152,11 +153,17 @@ uint8_t AT25_StatusWrite(At25Driver_t *pAt25,uint8_t state)
     return AT25_SendCommand(pAt25,AT25CMD_STATUS_WRITE,1,&Buf,1,0);
 }
 
-uint16_t AT25_ee_write(At25Driver_t *pAt25,uint16_t address, uint8_t *data, uint16_t datasz)
+uint16_t AT25_ee_write(At25Driver_t *pAt25,uint16_t address, uint8_t *data, uint16_t datasz, systime_t tout)
 {
     uint8_t pBuf[32];
     uint8_t i; 
 	uint16_t k=0;
+    systime_t TimeMarker;
+
+    //Maximum Write Cycle Time may be 20ms
+    if (tout < MS2ST(pAt25->pDesc->MaxWriteCycleTime+1)) {
+        tout = MS2ST(pAt25->pDesc->MaxWriteCycleTime+1);
+    }
 
     /*The AT25080/160/320/640 is capable of a 32-byte PAGE WRITE operation. After each byte of
     data is received, the five low order address bits are internally incremented by one; the high
@@ -167,17 +174,27 @@ uint16_t AT25_ee_write(At25Driver_t *pAt25,uint16_t address, uint8_t *data, uint
     while (datasz) {
         uint8_t status;
         uint8_t n = 32;
+        TimeMarker = chVTGetSystemTime();
+        while (AT25_IsEepromBusy(pAt25)) {
+            if ((chVTGetSystemTime()-TimeMarker) > tout) {
+                return k;
+            }
+            chThdSleepMilliseconds(1);
+        }
         n = (address & ~0x1f ) + 0x20 - address; //вычисляем кол-во байт до следующего кратного 32-м байтам адреса
         for (i=0;(i<n)&&(datasz);i++) {
             //при достижении адреса кратного 32 байтам или достижения i==32 или окончания данных (datasz==0) выходим из цикла.
             pBuf[i]=data[k++];
             datasz--; 
         }
-        while (AT25_IsEepromBusy(pAt25)) ;
         AT25_Write_Enable(pAt25);
         //Send STATUS REGISTER READ command
+        TimeMarker = chVTGetSystemTime();
         do {
             status = AT25_StatusRead(pAt25);
+            if ((chVTGetSystemTime()-TimeMarker) > tout) {
+                return k;
+            }
         } while (! (AT25_STATUS_READY(status) && AT25_STATUS_WRITE_EN(status)) );
         AT25_SendCommand(pAt25,AT25CMD_WRITE, 3, pBuf, i,address);
         status = AT25_StatusRead(pAt25);
@@ -186,19 +203,31 @@ uint16_t AT25_ee_write(At25Driver_t *pAt25,uint16_t address, uint8_t *data, uint
     return k;
 }
 
-uint16_t AT25_ee_read(At25Driver_t *pAt25,uint16_t address, uint8_t *data, uint16_t datasz)
+uint16_t AT25_ee_read(At25Driver_t *pAt25,uint16_t address, uint8_t *data, uint16_t datasz, systime_t tout)
 {
     uint8_t pBuf[32];
     uint8_t i, k;
     uint16_t	n=0;
+
+    systime_t TimeMarker;
+
+    //Maximum Write Cycle Time may be 20ms
+    if (tout < MS2ST(pAt25->pDesc->MaxWriteCycleTime+1)) {
+        tout = MS2ST(pAt25->pDesc->MaxWriteCycleTime+1);
+    }
+
     while (datasz) {
         uint8_t status;
         if (datasz<32) {
             i = datasz;
         }
         else  i = 32;
+        TimeMarker = chVTGetSystemTime();
         do {
             status = AT25_StatusRead(pAt25);
+            if ((chVTGetSystemTime()-TimeMarker) > tout) {
+                return n;
+            }
         } while (! AT25_STATUS_READY(status));
         AT25_SendCommand(pAt25, AT25CMD_READ,3,pBuf,i,address);
         address += i;

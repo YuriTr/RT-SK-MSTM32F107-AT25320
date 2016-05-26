@@ -149,7 +149,7 @@ static void cmd_eeread(BaseSequentialStream *chp, int argc, char *argv[]) {
   chMtxLock(&DBG_busy_mutex);
   chprintf(chp,"EEPROM Status: %x\n\r", AT25_StatusRead(&At25drv));
   chprintf(chp,"Read EEPROM: ");
-  i = AT25_ee_read(&At25drv,0,ReadBuf,256);
+  i = AT25_ee_read(&At25drv,0,ReadBuf,256,0);
   for (l = 0;l<i;l++) {
     chprintf(chp,"%x ",ReadBuf[l]);
   }
@@ -166,8 +166,21 @@ static void cmd_eewrite(BaseSequentialStream *chp, int argc, char *argv[])  {
     chprintf(chp,"%x ",ReadBuf[l]);
   }
   chprintf(chp,"\n\r");
-  i = AT25_ee_write(&At25drv,0,ReadBuf,256);
+  i = AT25_ee_write(&At25drv,0,ReadBuf,256,0);
   chprintf(chp, "%d bytes written\n\r",i);
+  chMtxUnlock(&DBG_busy_mutex);
+}
+
+static void cmd_erase(BaseSequentialStream *chp, int argc, char *argv[]) {
+  uint16_t i,l;
+  chMtxLock(&DBG_busy_mutex);
+  chprintf(chp,"Erase EEPROM. ");
+  for (l = 0;l<256;l++) {
+    ReadBuf[l] = 0xff;
+  }
+  chprintf(chp,"\n\r");
+  i = AT25_ee_write(&At25drv,0,ReadBuf,256,0);
+  chprintf(chp, "%d bytes erased\n\r",i);
   chMtxUnlock(&DBG_busy_mutex);
 }
 
@@ -178,6 +191,7 @@ static const ShellCommand commands[] = {
   {"write", cmd_write},
   {"eeread", cmd_eeread},
   {"eewrite",cmd_eewrite},
+  {"erase", cmd_erase},
   {NULL, NULL}
 };
 
@@ -239,7 +253,7 @@ int main(void) {
   if (!shell_chp) {
       shell_chp = (BaseSequentialStream *)shell_cfg1.sc_channel;
   }
-
+  TRACE_INFO("Start\n\r");
   /*
    * Shell manager initialization.
    */
@@ -248,9 +262,9 @@ int main(void) {
   /*
    * Creates the blinker thread.
    */
-  chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO, Thread1, NULL);
+  chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO-1, Thread1, NULL);
 
-  shelltp = shellCreate(&shell_cfg1, SHELL_WA_SIZE, NORMALPRIO);
+  shelltp = shellCreate(&shell_cfg1, SHELL_WA_SIZE, NORMALPRIO-2);
   /*
    * Normal main() thread activity, in this demo it does nothing except
    * sleeping in a loop and check the button state.
@@ -258,7 +272,7 @@ int main(void) {
   AT25_Configure(&At25drv,0,0,idAt25320);
   TRACE_DEBUG("EEPROM Status: %x\n\r", AT25_StatusRead(&At25drv));
   TRACE_DEBUG("Read EEPROM: ");
-  i = AT25_ee_read(&At25drv,0,ReadBuf,256);
+  i = AT25_ee_read(&At25drv,0,ReadBuf,512,0);
   for (l = 0;l<i;l++) {
     TRACE_DEBUG_WP("%x ",ReadBuf[l]);
   }

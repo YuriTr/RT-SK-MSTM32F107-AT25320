@@ -45,14 +45,17 @@ typedef enum {
     idAt25080,
     idAt25160,
     idAt25320,
-    idAt25640
+    idAt25640,
+    idAt25512
 } At25_id_t;
 
 typedef struct {
     /// Size of EEPROM 
-    uint16_t  EepromSize;
+    uint32_t  EepromSize;
     /// The block write protection levels and
     uint16_t  BlockWPaddr[4];
+    /// Maximum Write Cycle Time in ms
+    uint8_t   MaxWriteCycleTime;
     /// Identifier.
     const char *name;
 } At25Desc;
@@ -78,8 +81,8 @@ extern uint8_t AT25_StatusWrite(At25Driver_t *pAt25,uint8_t state);
 
 extern uint8_t AT25_StatusRead(At25Driver_t *pAt25);
 
-extern uint16_t AT25_ee_write(At25Driver_t *pAt25,uint16_t address, uint8_t *data, uint16_t datasz);
+extern uint16_t AT25_ee_write(At25Driver_t *pAt25,uint16_t address, uint8_t *data, uint16_t datasz, systime_t tout);
 
-extern uint16_t AT25_ee_read(At25Driver_t *pAt25,uint16_t address, uint8_t *data, uint16_t datasz);
+extern uint16_t AT25_ee_read(At25Driver_t *pAt25,uint16_t address, uint8_t *data, uint16_t datasz, systime_t tout);
 
 #endif
