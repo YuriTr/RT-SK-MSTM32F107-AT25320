@@ -3,3 +3,5 @@
 build/*
 SlickEdit/*.vpwhist
 SlickEdit/*.vtg
+RevFile.txt
+Revfile.h

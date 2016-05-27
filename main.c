@@ -184,6 +184,14 @@ static void cmd_erase(BaseSequentialStream *chp, int argc, char *argv[]) {
   chMtxUnlock(&DBG_busy_mutex);
 }
 
+static void cmd_time(BaseSequentialStream *chp, int argc, char *argv[]) {
+  RTCDateTime dtime;
+  chMtxLock(&DBG_busy_mutex);
+  rtcGetTime(&RTCD1,&dtime);
+  chprintf(chp,"RTC: %d/%d/%d %d \n\r",dtime.year,dtime.month,dtime.day, dtime.millisecond);
+  chMtxUnlock(&DBG_busy_mutex);
+}
+
 static const ShellCommand commands[] = {
   {"mem", cmd_mem},
   {"threads", cmd_threads},
@@ -192,6 +200,7 @@ static const ShellCommand commands[] = {
   {"eeread", cmd_eeread},
   {"eewrite",cmd_eewrite},
   {"erase", cmd_erase},
+  {"time", cmd_time},
   {NULL, NULL}
 };
 
