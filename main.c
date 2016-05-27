@@ -269,7 +269,7 @@ int main(void) {
    * Normal main() thread activity, in this demo it does nothing except
    * sleeping in a loop and check the button state.
    */
-  AT25_Configure(&At25drv,0,0,idAt25320);
+  AT25_Configure(&At25drv,0,0,idAt25512);
   TRACE_DEBUG("EEPROM Status: %x\n\r", AT25_StatusRead(&At25drv));
   TRACE_DEBUG("Read EEPROM: ");
   i = AT25_ee_read(&At25drv,0,ReadBuf,512,0);

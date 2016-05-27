@@ -174,6 +174,9 @@ uint16_t AT25_ee_write(At25Driver_t *pAt25,uint16_t address, uint8_t *data, uint
     while (datasz) {
         uint8_t status;
         uint8_t n = 32;
+        if (!(address < pAt25->pDesc->EepromSize)) {
+            return k;
+        }
         TimeMarker = chVTGetSystemTime();
         while (AT25_IsEepromBusy(pAt25)) {
             if ((chVTGetSystemTime()-TimeMarker) > tout) {
@@ -218,6 +221,9 @@ uint16_t AT25_ee_read(At25Driver_t *pAt25,uint16_t address, uint8_t *data, uint1
 
     while (datasz) {
         uint8_t status;
+        if (!(address < pAt25->pDesc->EepromSize)) {
+            return n;
+        }
         if (datasz<32) {
             i = datasz;
         }
